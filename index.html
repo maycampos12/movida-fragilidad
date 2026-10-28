@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mo-Vida | Detector de Fragilidad</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 min-h-screen flex flex-col">
+
+    <!-- ENCABEZADO -->
+    <header class="bg-emerald-900 text-white p-6 shadow-md border-b-4 border-emerald-600">
+        <div class="max-w-5xl mx-auto">
+            <div class="flex items-center mb-4">
+                <!-- AQUÍ ESTÁ TU LOGO -->
+                <img src="logo-movida.png" alt="Logo Mo-Vida" class="h-20 w-20 rounded-full bg-white p-1 mr-5 shadow-lg object-contain">
+                <div>
+                    <h1 class="text-3xl font-bold tracking-tight">Mo-Vida: Detector de Fragilidad de Marcha</h1>
+                    <p class="text-emerald-200 mt-1 font-light">Prototipo de clasificación clínica temprana basado en clustering (K-Means)</p>
+                </div>
+            </div>
+            
+            <!-- CONTEXTO CLÍNICO -->
+            <div class="bg-emerald-800 p-4 rounded-lg text-sm border border-emerald-700 leading-relaxed shadow-inner">
+                <strong class="text-emerald-300">Contexto de la herramienta:</strong> La fragilidad es un síndrome clínico asociado al envejecimiento, caracterizado por una disminución de la reserva fisiológica y una mayor vulnerabilidad ante estresores. Esta herramienta tecnológica busca solucionar el reto planteado por la <strong>Alcaldía de Bogotá</strong>: detectar la fragilidad de manera ágil y a bajo costo en la atención primaria, para prevenir caídas, evitar hospitalizaciones y proteger la autonomía del adulto mayor, reduciendo así la carga sobre nuestro sistema de salud.
+            </div>
+        </div>
+    </header>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <main class="flex-grow max-w-5xl mx-auto w-full p-6 grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <!-- PANEL DE INGRESO DE DATOS (Simulación del Dataset) -->
+        <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h2 class="text-xl font-semibold text-emerald-900 mb-4 border-b pb-2">Parámetros Biomecánicos del Paciente</h2>
+            <p class="text-xs text-gray-500 mb-6">Ingrese las variables cinemáticas extraídas del análisis de señales (TUG, Marcha y Equilibrio). El sistema calculará el riesgo basándose en el pipeline estadístico de 41 pacientes.</p>
+            
+            <form id="fragilidad-form" class="space-y-6">
+                <!-- Variables TUG -->
+                <div>
+                    <h3 class="text-sm font-bold text-gray-700 mb-3 bg-gray-100 p-2 rounded">Prueba Timed Up and Go (TUG)</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Duración Total (s)</label>
+                            <input type="number" id="tug_time" step="0.01" class="w-full border border-gray-300 rounded p-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Ej. 13.5" required>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Fase Giro Medio (s)</label>
+                            <input type="number" id="tug_giro" step="0.01" class="w-full border border-gray-300 rounded p-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Ej. 2.7" required>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Variables Marcha -->
+                <div>
+                    <h3 class="text-sm font-bold text-gray-700 mb-3 bg-gray-100 p-2 rounded">Parámetros de Marcha</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Velocidad de Marcha (m/s)</label>
+                            <input type="number" id="gait_speed" step="0.01" class="w-full border border-gray-300 rounded p-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Ej. 0.85" required>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Ratio Armónico</label>
+                            <input type="number" id="ratio_armonico" step="0.01" class="w-full border border-gray-300 rounded p-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Ej. 1.45" required>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-3 px-4 rounded transition duration-200 shadow-md">
+                    Analizar Nivel de Fragilidad
+                </button>
+            </form>
+        </div>
+
+        <!-- PANEL DE RESULTADOS Y PERCENTIL -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 flex flex-col">
+            <h2 class="text-xl font-semibold text-emerald-900 mb-4 border-b pb-2">Resultado Clínico</h2>
+            
+            <div id="resultado-panel" class="hidden flex-grow flex flex-col justify-center items-center text-center space-y-4">
+                <div class="text-gray-500 text-sm">Puntuación de Riesgo:</div>
+                <div id="score-text" class="text-6xl font-black text-emerald-900">0%</div>
+                <div id="badge-riesgo" class="px-4 py-1 rounded-full text-white font-semibold text-sm"></div>
+                
+                <!-- GRÁFICA DE PERCENTIL -->
+                <div class="w-full pt-6">
+                    <h4 class="text-xs font-bold text-gray-600 mb-2 text-left">Su posición frente a la BD (41 Pacientes):</h4>
+                    
+                    <!-- Barra de Gradiente -->
+                    <div class="relative w-full h-4 bg-gradient-to-r from-green-500 via-yellow-400 to-red-600 rounded-full shadow-inner">
+                        <!-- Puntero/Marcador -->
+                        <div id="marcador-percentil" class="absolute top-0 -ml-1 w-2 h-6 bg-slate-800 rounded-sm shadow-md transition-all duration-1000 ease-out" style="left: 0%; top: -4px;"></div>
+                    </div>
+                    
+                    <!-- Etiquetas del Percentil -->
+                    <div class="flex justify-between text-[10px] text-gray-500 mt-2 font-bold uppercase">
+                        <span>Bajo (<65%)</span>
+                        <span>Medio (65-81%)</span>
+                        <span>Alto (>81%)</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="instruccion-panel" class="flex-grow flex items-center justify-center text-center text-gray-400 text-sm p-4">
+                Ingrese los datos del paciente para generar la predicción de clustering.
+            </div>
+
+            <!-- TABLA DE CLASIFICACIÓN -->
+            <div class="mt-8">
+                <table class="w-full text-xs text-left border-collapse">
+                    <thead>
+                        <tr class="bg-emerald-100 text-emerald-900 border-b border-emerald-200">
+                            <th class="p-2 font-bold">Rango de Score</th>
+                            <th class="p-2 font-bold">Clasificación</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-gray-600">
+                        <tr class="border-b border-gray-100">
+                            <td class="p-2">Menor al 65%</td>
+                            <td class="p-2 font-semibold text-green-600">Bajo riesgo</td>
+                        </tr>
+                        <tr class="border-b border-gray-100">
+                            <td class="p-2">Entre 65% y 81%</td>
+                            <td class="p-2 font-semibold text-yellow-600">Riesgo medio</td>
+                        </tr>
+                        <tr>
+                            <td class="p-2">Mayor al 81%</td>
+                            <td class="p-2 font-semibold text-red-600">Alto riesgo</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- PIE DE PÁGINA (Autores) -->
+    <footer class="bg-gray-800 text-gray-400 py-6 text-center text-sm border-t-4 border-emerald-700">
+        <p class="mb-1 font-semibold text-gray-300">Herramienta para la detección temprana de fragilidad</p>
+        <p>Proyecto de la asignatura <strong>Sistemas y Señales Biomédicas</strong></p>
+        <p class="mt-2 text-emerald-400 font-bold tracking-wide">
+            Desarrollado por: Mayra Alejandra Campos y Juan David Garcia
+        </p>
+    </footer>
+
+    <!-- LÓGICA JAVASCRIPT (Simulación Pipeline K-Means) -->
+    <script>
+        document.getElementById('fragilidad-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Obtener valores
+            const tugTime = parseFloat(document.getElementById('tug_time').value);
+            const tugGiro = parseFloat(document.getElementById('tug_giro').value);
+            const gaitSpeed = parseFloat(document.getElementById('gait_speed').value);
+            const ratioArmonico = parseFloat(document.getElementById('ratio_armonico').value);
+
+            // Simulación matemática del peso estadístico de los clusters obtenidos en el notebook
+            // TUG Time (Mayor a 12s aumenta el riesgo)
+            let risk = 0;
+            
+            if (tugTime > 14) risk += 35;
+            else if (tugTime > 12) risk += 20;
+            else risk += 5;
+
+            // Velocidad Marcha (Menor a 1.0 m/s aumenta el riesgo)
+            if (gaitSpeed < 0.7) risk += 40;
+            else if (gaitSpeed < 1.0) risk += 25;
+            else risk += 5;
+
+            // Variables secundarias para ajustar la predicción
+            if (tugGiro > 2.5) risk += 10;
+            if (ratioArmonico < 1.3) risk += 10;
+
+            // Factor de ajuste para distribuirlo en la escala 0-100
+            risk += Math.floor(Math.random() * 5); // Pequeño margen estocástico
+            if (risk > 99) risk = 99;
+            if (risk < 15) risk = 15;
+
+            // Actualizar Interfaz
+            document.getElementById('instruccion-panel').classList.add('hidden');
+            const resultPanel = document.getElementById('resultado-panel');
+            resultPanel.classList.remove('hidden');
+
+            // Animar el número
+            document.getElementById('score-text').innerText = risk + '%';
+
+            // Mover el marcador en la gráfica de percentil
+            setTimeout(() => {
+                document.getElementById('marcador-percentil').style.left = risk + '%';
+            }, 100);
+
+            // Asignar categorías y colores
+            const badge = document.getElementById('badge-riesgo');
+            if (risk < 65) {
+                badge.innerText = 'BAJO RIESGO DE FRAGILIDAD';
+                badge.className = 'px-4 py-1 rounded-full text-white font-bold text-xs bg-green-500 shadow';
+                document.getElementById('score-text').className = 'text-6xl font-black text-green-600';
+            } else if (risk >= 65 && risk <= 81) {
+                badge.innerText = 'RIESGO MEDIO';
+                badge.className = 'px-4 py-1 rounded-full text-white font-bold text-xs bg-yellow-500 shadow';
+                document.getElementById('score-text').className = 'text-6xl font-black text-yellow-600';
+            } else {
+                badge.innerText = 'ALTO RIESGO DE FRAGILIDAD';
+                badge.className = 'px-4 py-1 rounded-full text-white font-bold text-xs bg-red-600 shadow';
+                document.getElementById('score-text').className = 'text-6xl font-black text-red-600';
+            }
+        });
+    </script>
+</body>
+</html>
